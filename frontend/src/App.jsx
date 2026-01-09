@@ -1,23 +1,33 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-// --- SQL DATA TYPES (PRESETS) ---
-// These populate the dropdown. Selecting one fills the text box.
+// --- POSTGRESQL DATA TYPES ---
 const SQL_DATA_TYPES = {
     "String / Text": [
-        "NVARCHAR(MAX)", "VARCHAR(MAX)", "NVARCHAR(255)", "VARCHAR(255)", "NCHAR(10)", "CHAR(10)", "TEXT"
+        "TEXT",             // Preferred in Postgres (No length limit)
+        "VARCHAR(255)",     // Standard variable length
+        "CHAR(10)",         // Fixed length
+        "UUID"              // Unique ID
     ],
     "Integers": [
-        "INT", "BIGINT", "SMALLINT", "TINYINT"
+        "INTEGER",          // Standard number
+        "BIGINT",           // Large number
+        "SMALLINT"          // Small number
     ],
     "Decimals / Money": [
-        "FLOAT", "REAL", "DECIMAL(18,2)", "DECIMAL(38,4)", "MONEY"
+        "NUMERIC(18,2)",    // Precise (Money/Finance)
+        "DOUBLE PRECISION", // Scientific/Float
+        "REAL"
     ],
     "Date & Time": [
-        "DATETIME", "DATETIME2", "DATE", "TIME"
+        "TIMESTAMP",        // Date + Time
+        "DATE",             // Date only
+        "TIME"              // Time only
     ],
-    "Other": [
-        "BIT", "UNIQUEIDENTIFIER", "VARBINARY(MAX)"
+    "Boolean / Other": [
+        "BOOLEAN",          // True/False
+        "JSONB",            // Flexible JSON data
+        "BYTEA"             // Binary data
     ]
 };
 
@@ -64,7 +74,7 @@ const styles = {
     display: "flex", justifyContent: "center", alignItems: "center"
   },
   modalContent: {
-    background: "white", padding: "25px", borderRadius: "8px", width: "650px", // Wider modal
+    background: "white", padding: "25px", borderRadius: "8px", width: "650px", 
     maxHeight: "85vh", overflowY: "auto", boxShadow: "0 10px 25px rgba(0,0,0,0.2)"
   }
 };
@@ -121,7 +131,7 @@ function App() {
     if (!tableName) return alert("Enter Table Name");
     if (selectedColumns.length === 0) return alert("Select at least one column.");
     
-    setLoading(true); setLoadingMessage("Saving to Databse...");
+    setLoading(true); setLoadingMessage("Saving to PostgreSQL...");
     setIsIndeterminate(true); 
 
     try {
@@ -155,7 +165,7 @@ function App() {
     <div style={styles.mainWrapper}>
       <div style={styles.container}>
         
-        <h1 style={{textAlign: "center", color: "#333", marginBottom: "30px"}}>OmniData ETL</h1>
+        <h1 style={{textAlign: "center", color: "#333", marginBottom: "30px"}}>OmniData ETL (PostgreSQL)</h1>
 
         {/* 1. UPLOAD BOX */}
         <div style={{ background: "#fff", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 5px rgba(0,0,0,0.1)", textAlign: "center" }}>
@@ -188,10 +198,16 @@ function App() {
                                 key={col} 
                                 onClick={() => toggleColumn(col)}
                                 style={isSelected ? styles.thSelected : styles.thDefault}
+                                title={isSelected ? "Click to Deselect" : "Click to Select"}
                             >
                                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px"}}>
                                     {col}
-                                    {isSelected && <span>✅</span>}
+                                    {/* LOGIC: If selected show Check, else show Plus */}
+                                    {isSelected ? (
+                                        <span>✅</span> 
+                                    ) : (
+                                        <span style={{fontSize: "18px", fontWeight: "bold", opacity: 0.5}}>+</span>
+                                    )}
                                 </div>
                             </th>
                         );
@@ -246,15 +262,15 @@ function App() {
         )}
       </div>
 
-      {/* --- IMPROVED TYPE MODAL --- */}
+      {/* --- MODAL --- */}
       {showTypeModal && (
         <div style={styles.modalBackdrop}>
           <div style={styles.modalContent}>
             <div style={{display:"flex", justifyContent:"space-between", marginBottom:"20px"}}>
-                <h3 style={{margin:0}}>Set Data Types</h3>
+                <h3 style={{margin:0}}>Set PostgreSQL Data Types</h3>
                 <button onClick={() => setShowTypeModal(false)} style={{border:"none", background:"none", fontSize:"20px", cursor:"pointer"}}>✕</button>
             </div>
-            <p style={{fontSize:"13px", color:"#666"}}>Use the dropdown to pick a type, or edit the text box manually (e.g. change <b>MAX</b> to <b>500</b>).</p>
+            <p style={{fontSize:"13px", color:"#666"}}>Use the dropdown to pick a type, or edit the text box manually.</p>
             
             <div style={{borderTop: "1px solid #eee", marginTop: "10px"}}>
               {selectedColumns.map(col => (
@@ -265,7 +281,7 @@ function App() {
                     {/* EDITABLE TEXT INPUT */}
                     <input 
                         type="text" 
-                        value={columnTypes[col] || "NVARCHAR(MAX)"} 
+                        value={columnTypes[col] || "TEXT"} 
                         onChange={(e) => handleTypeChange(col, e.target.value)}
                         style={{flex: 1, padding: "6px", border: "1px solid #ccc", borderRadius: "4px", fontSize: "13px"}}
                     />
@@ -277,10 +293,9 @@ function App() {
                         }} 
                         style={{width: "140px", padding: "6px", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer"}}
                         title="Pick a preset"
-                        value="" // Always reset so you can pick the same thing again
+                        value="" 
                     >
-                        <option value="" disabled>select </option>
-                        
+                        <option value="" disabled>Select</option>
                         {Object.keys(SQL_DATA_TYPES).map(group => (
                         <optgroup key={group} label={group}>
                             {SQL_DATA_TYPES[group].map(t => <option key={t} value={t}>{t}</option>)}
